@@ -1,47 +1,59 @@
+# from skimage.metrics import structural_similarity as compare_ssim
+from skimage.metrics import structural_similarity as compare_ssim
+import imutils
 import cv2
 import numpy as np
-import matplotlib.pyplot as plt
-plt.rcParams['figure.figsize']=(10,10)
-import pandas as pd
-from numpy.core.fromnumeric import shape
-kernal=np.ones((2,2))
-def dis(x1,x2,y1,y2):
-    return sqrt(((x1-x2)**2)+((y1-y2)**2))
-def empty(*arg):
-    pass
-def getcountour(img,imgContour):
-    global a
-    countours,hierarchy=cv2.findContours(img,cv2.RETR_EXTERNAL,cv2.CHAIN_APPROX_NONE)
-#     cv2.drawContours(imgContour,countours,-1,(255,0,255),5)
-#     a=countours
-    for cnt in countours:
-        if len(cnt)>0:
-            area=cv2.contourArea(cnt)
-            if area>10:
-                a.append(cnt)
-                print('a')
-                cv2.drawContours(imgContour,cnt,-1,(255,0,255),1)
-cv2.namedWindow('th')
-cv2.resizeWindow('th',(600,85))
-cv2.createTrackbar('thr1','th',90,255,empty)
-cv2.createTrackbar('thr2','th',90,255,empty)
-while True:
-    img=cv2.imread('1.jpg')
-    
-    print(np.shape(img))
-    hsv=cv2.cvtColor(img,cv2.COLOR_BGR2HSV)
-    mask_image=cv2.inRange(hsv,np.array((0,0,0)),np.array((180,255,40)))
-    contour,hierarchy=cv2.findContours(mask_image,cv2.RETR_LIST,cv2.CHAIN_APPROX_NONE)
-    contour=sorted(contour,key=lambda x:cv2.contourArea(x),reverse=True)
-    for cnt in contour:
+# load the two input images
 
-        area=cv2.contourArea(cnt)
-#     if area>30000:
-        if (area>40000) & (area<1400000):
-#         print(area)
-#         a.append(cnt)
-            cv2.drawContours(img, cnt, -1, (0, 255, 0), 10)
-    # plt.imshow(img[:,:,::-1])
-    cv2.imshow('img',img)
-    if cv2.waitKey(1) & 0xff==ord('q'):
-        break
+imageA = cv2.imread('3_1.jpg')
+# imageA=image[:,:-4]
+imageB = cv2.imread('4_1.jpg')
+print(np.shape(imageA),np.shape(imageB))
+if np.shape(imageA)[0]>np.shape(imageB)[0]:
+    imageA = imageA[:np.shape(imageB)[0],:]
+elif np.shape(imageA)[0]<np.shape(imageB)[0]:
+    imageB = imageB[:np.shape(imageA)[0],:]
+elif np.shape(imageA)[1]>np.shape(imageB)[1]:
+    imageA = imageA[:,:np.shape(imageB)[1]]
+else:
+    imageB = imageB[:,:np.shape(imageA)[1]]
+print(np.shape(imageA),np.shape(imageB))
+# convert the images to grayscale
+grayA = cv2.cvtColor(imageA, cv2.COLOR_BGR2GRAY)
+grayB = cv2.cvtColor(imageB, cv2.COLOR_BGR2GRAY)
+try:
+    # compute the Structural Similarity Index (SSIM) between the two
+    # images, ensuring that the difference image is returned
+    (score, diff) = compare_ssim(grayA, grayB, full=True)
+    diff = (diff * 255).astype("uint8")
+    print("SSIM: {}".format(score))
+    # threshold the difference image, followed by finding contours to
+    # obtain the regions of the two input images that differ
+    thresh = cv2.threshold(diff, 0, 255,
+        cv2.THRESH_BINARY_INV | cv2.THRESH_OTSU)[1]
+    cnts = cv2.findContours(thresh.copy(), cv2.RETR_EXTERNAL,
+        cv2.CHAIN_APPROX_SIMPLE)
+    cnts = imutils.grab_contours(cnts)
+    # cv2.drawContours(imageA, cnts, -1, (0,255,0), 1)
+    # loop over the contours
+    for c in cnts:
+    #     # compute the bounding box of the contour and then draw the
+    #     # bounding box on both input images to represent where the two
+    #     # images differ
+        (x, y, w, h) = cv2.boundingRect(c)
+        cv2.rectangle(imageA, (x, y), (x + w, y + h), (0, 0, 255), 1)
+        cv2.rectangle(imageB, (x, y), (x + w, y + h), (0, 0, 255), 1)
+    cv2.drawContours(imageA, cnts, -1, (0, 255, 0), 1)
+    cv2.drawContours(imageB, cnts, -1, (0, 255, 0), 1)
+    #     cv2.drawContours(imageA, c, -1, (0,255,0), 1)
+    #     cv2.drawContours(imageB, c, -1, (0,255,0), 1)
+    # show the output images
+    cv2.imshow("Original", imageA)
+    cv2.imshow("Modified", imageB)
+    cv2.imshow("Diff", diff)
+    cv2.imshow("Thresh", thresh)
+    cv2.waitKey(0)
+    # run
+    # python image_diff.py --first 3_1.jpg --second 4_1.jpg
+except:
+    pass
