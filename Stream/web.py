@@ -1,19 +1,3 @@
-# import streamlit as st
-# import cv2
-# import numpy as np
-# st.title('image crop')
-# uploaded_file=st.file_uploader('Image',['png', 'jpg','jpeg'])
-# img1=uploaded_file.read()
-# # img1=cv2.imread(img)
-# # print(np.array(img))
-
-# if uploaded_file:
-#     img1=uploaded_file.read()
-#     print(img1)
-#     st.image(uploaded_file)
-#     # st.write(img1)
-
-
 import cv2
 import numpy as np
 import streamlit as st
@@ -21,9 +5,10 @@ import PIL.Image as Image
 import numpy as np
 import imutils
 from math import atan,degrees
+import base64
+from io import BytesIO
 
 uploaded_file = st.file_uploader("Choose a image file", type=['png', 'jpg','jpeg'])
-print(uploaded_file)
 if uploaded_file is not None:
     # Convert the file to an opencv image.
     file_bytes = np.asarray(bytearray(uploaded_file.read()), dtype=np.uint8)
@@ -93,19 +78,9 @@ if uploaded_file is not None:
             box_image= box_image[y1:y,:]
         st.image(box_image,channels='BGR')
 
-    # btn = st.download_button(
-    #   label="Download image",
-    #   data=uploaded_file,
-    #   file_name="imagename.png",
-    #   mime="image/png")    
-
-
-
-
-    
-    # btn = st.download_button(
-    #         label="Download image",
-    #         data=uploaded_file,
-    #         file_name="flower.png",
-    #         mime="image/png"
-    #       )
+        image_bytes = cv2.imencode('.jpg', box_image)[1].tobytes()
+        btn = st.download_button(
+            label="Download image",
+            data=image_bytes,
+            file_name="flower.png",
+            mime="image/png")
